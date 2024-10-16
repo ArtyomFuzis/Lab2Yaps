@@ -1,6 +1,7 @@
 ASMBUILD = nasm -f elf64 -g -o 
 .PHONY: run
 .PHONY: build
+.PHONY: test
 lib.o: lib.asm 
 	$(ASMBUILD) $@ $< 
 main.o: main.asm dict.inc lib.inc 
