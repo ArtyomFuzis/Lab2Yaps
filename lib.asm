@@ -12,6 +12,7 @@ global parse_int
 global parse_uint
 global string_copy
 global print_err
+global read_line
 %define SYS_EXIT 60
 %define SYS_READ 0
 %define SYS_WRITE 1

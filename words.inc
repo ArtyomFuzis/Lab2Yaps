@@ -14,5 +14,7 @@ db "val2",0
 colon "key3", node5
 db "val3",0
 colon "key4", node6
-db "val4",0
+db "val4", 0
+colonr 255, node7
+db "rep!!", 0
 %endif

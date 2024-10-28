@@ -2,23 +2,43 @@ global _start
 %include "lib.inc"
 %include "dict.inc"
 %include "colon.inc"
-%define STDIN 0
-%define SYSTEM_READ 0
+%define EXCEPTION_TOO_LONG_STRING 1
+%define STRING_MAX 255
 section .data
 greeting_msg: db "Please enter the string: ", `\n`, 0
 nothing_msg: db "Nothing found", `\n`, 0
 found_msg: db "Found value: ", `\n`, 0
+too_long_msg: db "Too long string", `\n`, 0
 section .text
 
+read_line:
+	push 	rbx
+	xor 	rbx, rbx
+.loop:	cmp	rbx, 255
+	jg 	.err
+	push	rdi
+	call	read_char
+	pop	rdi
+	test 	rax, rax
+	je 	.ret
+	inc	rbx
+	mov	[rdi+rbx-1], al
+	jmp	.loop	
+.ret:
+	mov	rax, rbx
+	pop 	rbx
+	ret
+.err:
+	mov	rdi, too_long_msg
+	call	print_err
+	mov 	rdi, EXCEPTION_TOO_LONG_STRING
+	call	exit
 _start:
 	mov 	rdi, greeting_msg
 	call 	print_string
-	sub 	rsp, 272
-	mov 	rax, SYSTEM_READ
-	mov 	rdi, STDIN
-	mov 	rsi, rsp
-	mov 	rdx, 255
-	syscall
+	sub	rsp, 272
+	mov	rdi, rsp
+	call	read_line
 	test	rax, rax
 	je 	.nfound
 	cmp 	BYTE [rsp+rax-1], `\n`
@@ -45,6 +65,6 @@ _start:
 	call 	print_err 
 .end:
 	add	rsp, 272
-	mov 	rdi, 0
+	xor 	rdi, rdi
 	call 	exit
 	ret

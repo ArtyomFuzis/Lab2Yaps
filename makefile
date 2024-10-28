@@ -2,6 +2,8 @@ ASMBUILD = nasm -f elf64 -g -o
 .PHONY: run
 .PHONY: build
 .PHONY: test
+.PHONY: all
+.PHONY: clean
 lib.o: lib.asm 
 	$(ASMBUILD) $@ $< 
 main.o: main.asm dict.inc lib.inc 
@@ -15,3 +17,6 @@ run: prog
 build: prog
 test: prog
 	python2 test.py
+clean: 
+	rm *.o
+all: build clean

@@ -505,13 +505,19 @@ class DictTest(unittest.TestCase):
             self.assertEqual(output, "Please enter the string: \n")
             self.assertEqual(err, "Nothing found\n")
     def test_string_found(self):
-        inputs = ['hello', 'key2', 'key3', "privet", "key4", "key1"]
-        outputs = ['Hello world!!!', 'val2', 'val3', "Privet mir!!!", "val4", "val1"]
+        inputs = ['hello', 'key2', 'key3', "privet", "key4", "key1","r"*255]
+        outputs = ['Hello world!!!', 'val2', 'val3', "Privet mir!!!", "val4", "val1","rep!!"]
         for pairs in zip(inputs, outputs):
             (output, code, err) = self.launch(pairs[0])
             self.assertEqual(code, 0)
             self.assertEqual(output, "Please enter the string: \nFound value: \n%s\n" % pairs[1])
             self.assertEqual(err, "")
+    def test_overflow(self):
+        input = "a"*256
+        (output, code, err) = self.launch(input)
+        self.assertEqual(code, 1, "return code incorrect %d != %d" % (code,1))
+        self.assertEqual(output, "Please enter the string: \n", "Something wrong in stdout output %s != %s" % (output,"Please enter the string: \n"))
+        self.assertEqual(err, "Too long string\n", "Something wrong in stderr output %s != %s" % (err,"Too long string\n"))
 
 
 
