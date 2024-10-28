@@ -8,38 +8,43 @@ import unittest
 import xmlrunner
 from subprocess import CalledProcessError, Popen, PIPE
 
-#-------helpers---------------
 
-def starts_uint( s ):
+# -------helpers---------------
+
+def starts_uint(s):
     matches = re.findall('^\d+', s)
     if matches:
         return (int(matches[0]), len(matches[0]))
     else:
         return (0, 0)
 
-def starts_int( s ):
+
+def starts_int(s):
     matches = re.findall('^-?\d+', s)
     if matches:
         return (int(matches[0]), len(matches[0]))
     else:
         return (0, 0)
 
+
 def unsigned_reinterpret(x):
     if x < 0:
-        return x + 2**64
+        return x + 2 ** 64
     else:
         return x
 
-def first_or_empty( s ):
+
+def first_or_empty(s):
     sp = s.split()
-    if sp == [] :
+    if sp == []:
         return ''
     else:
         return sp[0]
 
-#-----------------------------
 
-before_all="""
+# -----------------------------
+
+before_all = """
 %macro call 1
 mov rax, rsp
 and rax, 15
@@ -112,19 +117,21 @@ section .data
     .end:
 """
 
+
 class IOLibraryTest(unittest.TestCase):
     def compile(self, fname, text):
-        f = open( fname + '.asm', 'w')
-        f.write( text )
+        f = open(fname + '.asm', 'w')
+        f.write(text)
         f.close()
 
-        self.assertEqual(subprocess.call( ['nasm', '-f', 'elf64', fname + '.asm', '-o', fname+'.o'] ), 0, 'failed to compile')
-        self.assertEqual(subprocess.call( ['ld', '-o' , fname, fname+'.o'] ), 0, 'failed to link')
+        self.assertEqual(subprocess.call(['nasm', '-f', 'elf64', fname + '.asm', '-o', fname + '.o']), 0,
+                         'failed to compile')
+        self.assertEqual(subprocess.call(['ld', '-o', fname, fname + '.o']), 0, 'failed to link')
 
     def launch(self, fname, input):
         output = b''
         try:
-            p = Popen(['./'+fname], shell=None, stdin=PIPE, stdout=PIPE)
+            p = Popen(['./' + fname], shell=None, stdin=PIPE, stdout=PIPE)
             (output, _) = p.communicate(input.encode())
             self.assertNotEqual(p.returncode, -11, 'segmentation fault')
             return (output.decode(), p.returncode)
@@ -135,8 +142,6 @@ class IOLibraryTest(unittest.TestCase):
     def perform(self, fname, text, input):
         self.compile(fname, before_all + text)
         return self.launch(fname, input)
-
-
 
     def test_string_length(self):
         inputs = ['asdkbasdka', 'qwe qweqe qe', '']
@@ -156,8 +161,6 @@ _start:
             (output, code) = self.perform('string_length', text, input)
             self.assertEqual(code, len(input), 'string_length(%s) returned wrong length: %d' % (repr(input), code))
 
-
-
     def test_print_string(self):
         inputs = ['ashdb asdhabs dahb', ' ', '']
         for input in inputs:
@@ -175,8 +178,6 @@ _start:
 """
             (output, code) = self.perform('print_string', text, input)
             self.assertEqual(output, input, 'print_string(%s) printed wrong string: %s' % (repr(input), repr(output)))
-
-
 
     def test_string_copy(self):
         inputs = ['ashdb asdhabs dahb', ' ', '']
@@ -199,9 +200,8 @@ _start:
     syscall
 """
             (output, code) = self.perform('string_copy', text, input)
-            self.assertEqual(output, input, 'string_copy(%s) put wrong string into buffer: %s' % (repr(input), repr(output)))
-
-
+            self.assertEqual(output, input,
+                             'string_copy(%s) put wrong string into buffer: %s' % (repr(input), repr(output)))
 
     def test_string_copy_too_long(self):
         inputs = ['ashdb asdhabs dahb', ' ', '']
@@ -212,13 +212,13 @@ err_too_long_msg: db "string is too long", 10, 0
 
 section .data
 arg1: db '""" + input + """', 0
-arg2: times """ + str(len(input)//2) + """ db  66
+arg2: times """ + str(len(input) // 2) + """ db  66
 
 section .text
 _start:
     mov rdi, arg1
     mov rsi, arg2
-    mov rdx, """ + str(len(input)//2) + """
+    mov rdx, """ + str(len(input) // 2) + """
     call string_copy
     test rax, rax
     jnz .good
@@ -234,9 +234,8 @@ _exit:
     syscall
 """
             (output, code) = self.perform('string_copy_too_long', text, input)
-            self.assertNotEqual(output.find('too long'), -1, 'string_copy(%s) should have failed, but returned: %s' % (repr(input), repr(output)))
-
-
+            self.assertNotEqual(output.find('too long'), -1,
+                                'string_copy(%s) should have failed, but returned: %s' % (repr(input), repr(output)))
 
     def test_print_char(self):
         inputs = ['a', ' ', 'c']
@@ -253,8 +252,6 @@ _start:
             (output, code) = self.perform('print_char', text, input)
             self.assertEqual(output, input, 'print_char(%s) printed wrong char: %s' % (repr(input), repr(output)))
 
-
-
     def test_print_uint(self):
         inputs = ['-1', '12345234121', '0', '12312312', '123123']
         for input in inputs:
@@ -269,9 +266,8 @@ _start:
 """
             (output, code) = self.perform('print_uint', text, input)
             uinput = str(unsigned_reinterpret(int(input)))
-            self.assertEqual(output, uinput, 'print_uint(%s) printed wrong number: %s, expected: %s' % (repr(input), repr(output), repr(uinput)))
-
-
+            self.assertEqual(output, uinput, 'print_uint(%s) printed wrong number: %s, expected: %s' % (
+            repr(input), repr(output), repr(uinput)))
 
     def test_print_int(self):
         inputs = ['-1', '-12345234121', '0', '123412312', '123123']
@@ -288,10 +284,8 @@ _start:
             (output, code) = self.perform('print_int', text, input)
             self.assertEqual(output, input, 'print_int(%s) printed wrong number: %s' % (repr(input), repr(output)))
 
-
-
     def test_read_char(self):
-        inputs = ['-1', '-1234asdasd5234121', '', '   ', '\t   ', 'hey ya ye ya', 'hello world' ]
+        inputs = ['-1', '-1234asdasd5234121', '', '   ', '\t   ', 'hey ya ye ya', 'hello world']
         for input in inputs:
             text = """
 section .text
@@ -305,12 +299,11 @@ _start:
             if input == "":
                 self.assertEqual(code, 0, 'read_char with empty input should return 0')
             else:
-                self.assertEqual(code, ord(input[0]), 'read_char(%d) returned incorrect char: %d' % (ord(input[0]), code))
-
-
+                self.assertEqual(code, ord(input[0]),
+                                 'read_char(%d) returned incorrect char: %d' % (ord(input[0]), code))
 
     def test_read_word(self):
-        inputs = ['-1'] # , '-1234asdasd5234121', '', '   ', '\t   ', 'hey ya ye ya', 'hello world' ],
+        inputs = ['-1']  # , '-1234asdasd5234121', '', '   ', '\t   ', 'hey ya ye ya', 'hello world' ],
 
         for input in inputs:
             text = """
@@ -330,12 +323,11 @@ _start:
 """
             (output, code) = self.perform('read_word', text, input)
             input_word = first_or_empty(input)
-            self.assertEqual(output, input_word, 'read_word(%s) put incorrect word in the buffer: %s, expected: %s' % (repr(input), repr(output), repr(input_word)))
-
-
+            self.assertEqual(output, input_word, 'read_word(%s) put incorrect word in the buffer: %s, expected: %s' % (
+            repr(input), repr(output), repr(input_word)))
 
     def test_read_word_length(self):
-        inputs = ['-1', '-1234asdasd5234121', '', '   ', '\t   ', '\t   123', 'hey ya ye ya', 'hello world' ]
+        inputs = ['-1', '-1234asdasd5234121', '', '   ', '\t   ', '\t   123', 'hey ya ye ya', 'hello world']
         for input in inputs:
             text = """
 section .data
@@ -352,12 +344,11 @@ _start:
 """
             (output, code) = self.perform('read_word_length', text, input)
             input_word = first_or_empty(input)
-            self.assertEqual(code, len(input_word), 'read_word(%s) returned incorrect length: %d, expected: %d' % (repr(input), code, len(input_word)))
-
-
+            self.assertEqual(code, len(input_word), 'read_word(%s) returned incorrect length: %d, expected: %d' % (
+            repr(input), code, len(input_word)))
 
     def test_read_word_too_long(self):
-        inputs = [ 'asdbaskdbaksvbaskvhbashvbasdasdads wewe', 'short' ]
+        inputs = ['asdbaskdbaksvbaskvhbashvbasdasdads wewe', 'short']
         for input in inputs:
             text = """
 section .data
@@ -380,14 +371,12 @@ _start:
             else:
                 self.assertNotEqual(code, 0, 'read_word(%s) does not overflow buffer, but fails' % repr(input))
 
-
-
     def test_parse_uint(self):
-        inputs = ["0", "1234567890987654321hehehey", "1" ]
+        inputs = ["0", "1234567890987654321hehehey", "1"]
         for input in inputs:
             text = """
 section .data
-input: db '""" + input  + """', 0
+input: db '""" + input + """', 0
 
 section .text
 _start:
@@ -405,17 +394,17 @@ _start:
             (output, code) = self.perform('parse_uint', text, input)
             (input_num, input_len) = starts_uint(input)
 
-            self.assertEqual(output, str(input_num), 'parse_uint(%s) parsed wrong number: %s, expected: %s' % (repr(input), repr(output), repr(str(input_num))))
-            self.assertEqual(code, input_len, 'parse_uint(%s) returned wrong length: %d, expected: %d' % (repr(input), code, input_len))
-
-
+            self.assertEqual(output, str(input_num), 'parse_uint(%s) parsed wrong number: %s, expected: %s' % (
+            repr(input), repr(output), repr(str(input_num))))
+            self.assertEqual(code, input_len,
+                             'parse_uint(%s) returned wrong length: %d, expected: %d' % (repr(input), code, input_len))
 
     def test_parse_int(self):
-        inputs = ["0", "1234567890987654321hehehey", "-1dasda", "-eedea", "-123123123", "1" ]
+        inputs = ["0", "1234567890987654321hehehey", "-1dasda", "-eedea", "-123123123", "1"]
         for input in inputs:
             text = """
 section .data
-input: db '""" + input  + """', 0
+input: db '""" + input + """', 0
 
 section .text
 _start:
@@ -436,13 +425,13 @@ _start:
             if input_len == 0:
                 self.assertEqual(output, '0', 'parse_int(%s) should have failed, but parsed %s' % (repr(input), output))
             else:
-                self.assertEqual(output, str(input_num), 'parse_int(%s) parsed wrong number: %s, expected: %s' % (repr(input), repr(output), repr(str(input_num))))
-                self.assertEqual(code, input_len, 'parse_int(%s) returned wrong length: %d, expected: %d' % (repr(input), code, input_len))
-
-
+                self.assertEqual(output, str(input_num), 'parse_int(%s) parsed wrong number: %s, expected: %s' % (
+                repr(input), repr(output), repr(str(input_num))))
+                self.assertEqual(code, input_len, 'parse_int(%s) returned wrong length: %d, expected: %d' % (
+                repr(input), code, input_len))
 
     def test_string_equals(self):
-        inputs = ['ashdb asdhabs dahb', ' ', '', "asd" ]
+        inputs = ['ashdb asdhabs dahb', ' ', '', "asd"]
         for input in inputs:
             text = """
 section .data
@@ -461,10 +450,8 @@ _start:
             (output, code) = self.perform('string_equals', text, input)
             self.assertEqual(code, 1, 'string_equals(%s, %s) should return 1' % (repr(input), repr(input)))
 
-
-
     def test_string_not_equals(self):
-        inputs = ['ashdb asdhabs dahb', ' ', '', "asd" ]
+        inputs = ['ashdb asdhabs dahb', ' ', '', "asd"]
         for input in inputs:
             text = """
 section .data
@@ -486,49 +473,51 @@ _start:
 
 class DictTest(unittest.TestCase):
 
-
     def launch(self, input):
         try:
             p = Popen(['./prog'], shell=None, stdin=PIPE, stdout=PIPE, stderr=PIPE)
             (output, err) = p.communicate(input.encode())
             self.assertNotEqual(p.returncode, -11, 'segmentation fault')
-            return (output.decode(), p.returncode,err)
+            return (output.decode(), p.returncode, err)
         except CalledProcessError as exc:
             self.assertNotEqual(exc.returncode, -11, 'segmentation fault')
-            return (exc.output.decode(), exc.returncode,"")
+            return (exc.output.decode(), exc.returncode, "")
 
     def test_string_not_found(self):
-        inputs = ['ssh', 'my', 'hii', "as", "world",  "123"]
+        inputs = ['ssh', 'my', 'hii', "as", "world", "123"]
         for input in inputs:
-            (output, code,err) = self.launch(input)
+            (output, code, err) = self.launch(input)
             self.assertEqual(code, 0, 'something wrong with return code: it is %s' % (repr(code)))
             self.assertEqual(output, "Please enter the string: \n")
             self.assertEqual(err, "Nothing found\n")
+
     def test_string_found(self):
-        inputs = ['hello', 'key2', 'key3', "privet", "key4", "key1","r"*255]
-        outputs = ['Hello world!!!', 'val2', 'val3', "Privet mir!!!", "val4", "val1","rep!!"]
+        inputs = ['hello', 'key2', 'key3', "privet", "key4", "key1", "r" * 255]
+        outputs = ['Hello world!!!', 'val2', 'val3', "Privet mir!!!", "val4", "val1", "rep!!"]
         for pairs in zip(inputs, outputs):
             (output, code, err) = self.launch(pairs[0])
             self.assertEqual(code, 0)
             self.assertEqual(output, "Please enter the string: \nFound value: \n%s\n" % pairs[1])
             self.assertEqual(err, "")
+
     def test_overflow(self):
-        input = "a"*256
+        input = "a" * 256
         (output, code, err) = self.launch(input)
-        self.assertEqual(code, 1, "return code incorrect %d != %d" % (code,1))
-        self.assertEqual(output, "Please enter the string: \n", "Something wrong in stdout output %s != %s" % (output,"Please enter the string: \n"))
-        self.assertEqual(err, "Too long string\n", "Something wrong in stderr output %s != %s" % (err,"Too long string\n"))
+        self.assertEqual(code, 1, "return code incorrect %d != %d" % (code, 1))
+        self.assertEqual(output, "Please enter the string: \n",
+                         "Something wrong in stdout output %s != %s" % (output, "Please enter the string: \n"))
+        self.assertEqual(err, "Too long string\n",
+                         "Something wrong in stderr output %s != %s" % (err, "Too long string\n"))
 
-
-
-
-
-
-
-
+    def test_empty(self):
+        input = ""
+        (output, code, err) = self.launch(input)
+        self.assertEqual(code, 0, "return code incorrect %d != %d" % (code, 1))
+        self.assertEqual(output, "Please enter the string: \n",
+                         "Something wrong in stdout output %s != %s" % (output, "Please enter the string: \n"))
+        self.assertEqual(err, "Nothing found\n", "Something wrong in stderr output %s != %s" % (err, ""))
 
 
 if __name__ == "__main__":
     with open('report.xml', 'w') as report:
         unittest.main(testRunner=xmlrunner.XMLTestRunner(output=report), failfast=False, buffer=False, catchbreak=False)
-
